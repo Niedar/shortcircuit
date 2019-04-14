@@ -65,3 +65,5 @@ target/
 venv/
 .idea/
 resources/database/universeDataDx.db
+report.txt
+world.json

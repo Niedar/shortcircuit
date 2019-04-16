@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'resources\ui\gui_main.ui',
 # licensing of 'resources\ui\gui_main.ui' applies.
 #
-# Created: Tue Apr 16 02:56:38 2019
+# Created: Tue Apr 16 11:47:32 2019
 #      by: pyside2-uic  running on PySide2 5.12.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,9 +13,10 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(900, 850)
+        MainWindow.resize(858, 905)
         font = QtGui.QFont()
-        font.setFamily("Arial")
+        font.setFamily("Segoe UI")
+        font.setPointSize(9)
         MainWindow.setFont(font)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/images/app_icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
@@ -24,13 +25,35 @@ class Ui_MainWindow(object):
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.graphicsView_banner = QtWidgets.QGraphicsView(self.centralwidget)
-        self.graphicsView_banner.setMinimumSize(QtCore.QSize(420, 132))
-        self.graphicsView_banner.setMaximumSize(QtCore.QSize(16777215, 132))
-        self.graphicsView_banner.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.graphicsView_banner.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.graphicsView_banner.setObjectName("graphicsView_banner")
-        self.verticalLayout.addWidget(self.graphicsView_banner)
+        self.frame = QtWidgets.QFrame(self.centralwidget)
+        self.frame.setMinimumSize(QtCore.QSize(420, 132))
+        self.frame.setObjectName("frame")
+        self.gridLayout_5 = QtWidgets.QGridLayout(self.frame)
+        self.gridLayout_5.setContentsMargins(0, 0, 0, 0)
+        self.gridLayout_5.setObjectName("gridLayout_5")
+        self.banner_image = QtWidgets.QLabel(self.frame)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.banner_image.sizePolicy().hasHeightForWidth())
+        self.banner_image.setSizePolicy(sizePolicy)
+        self.banner_image.setMinimumSize(QtCore.QSize(420, 132))
+        self.banner_image.setMaximumSize(QtCore.QSize(16777215, 132))
+        self.banner_image.setCursor(QtCore.Qt.PointingHandCursor)
+        self.banner_image.setAutoFillBackground(False)
+        self.banner_image.setStyleSheet("background: rgb(255, 255, 255);\n"
+"border: 1px solid #000;")
+        self.banner_image.setText("")
+        self.banner_image.setPixmap(QtGui.QPixmap(":/images/banner.png"))
+        self.banner_image.setScaledContents(False)
+        self.banner_image.setAlignment(QtCore.Qt.AlignCenter)
+        self.banner_image.setOpenExternalLinks(False)
+        self.banner_image.setObjectName("banner_image")
+        self.gridLayout_5.addWidget(self.banner_image, 0, 0, 1, 1)
+        self.banner_button = QtWidgets.QPushButton(self.frame)
+        self.banner_button.setGeometry(QtCore.QRect(10, 10, 25, 25))
+        self.banner_button.setObjectName("banner_button")
+        self.verticalLayout.addWidget(self.frame)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.groupBox = QtWidgets.QGroupBox(self.centralwidget)
@@ -119,8 +142,8 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.addLayout(self.gridLayout_3)
         self.horizontalLayout.addWidget(self.groupBox)
         self.groupBox__options = QtWidgets.QGroupBox(self.centralwidget)
-        self.groupBox__options.setMinimumSize(QtCore.QSize(280, 0))
-        self.groupBox__options.setMaximumSize(QtCore.QSize(280, 16777215))
+        self.groupBox__options.setMinimumSize(QtCore.QSize(290, 0))
+        self.groupBox__options.setMaximumSize(QtCore.QSize(290, 16777215))
         self.groupBox__options.setObjectName("groupBox__options")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.groupBox__options)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
@@ -183,6 +206,7 @@ class Ui_MainWindow(object):
         self.label_5.setObjectName("label_5")
         self.horizontalLayout_4.addWidget(self.label_5)
         self.comboBox_size = QtWidgets.QComboBox(self.groupBox_restrictions)
+        self.comboBox_size.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContentsOnFirstShow)
         self.comboBox_size.setObjectName("comboBox_size")
         self.comboBox_size.addItem("")
         self.comboBox_size.addItem("")
@@ -190,6 +214,7 @@ class Ui_MainWindow(object):
         self.comboBox_size.addItem("")
         self.comboBox_size.addItem("")
         self.horizontalLayout_4.addWidget(self.comboBox_size)
+        self.horizontalLayout_4.setStretch(0, 1)
         self.verticalLayout_5.addLayout(self.horizontalLayout_4)
         self.checkBox_eol = QtWidgets.QCheckBox(self.groupBox_restrictions)
         self.checkBox_eol.setObjectName("checkBox_eol")
@@ -396,7 +421,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addLayout(self.horizontalLayout)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 900, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 858, 21))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -408,6 +433,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "MainWindow", None, -1))
+        self.banner_button.setText(QtWidgets.QApplication.translate("MainWindow", "?", None, -1))
         self.groupBox.setTitle(QtWidgets.QApplication.translate("MainWindow", "Route planner", None, -1))
         self.label_destination.setText(QtWidgets.QApplication.translate("MainWindow", "Destination:", None, -1))
         self.label_source.setText(QtWidgets.QApplication.translate("MainWindow", "Source:", None, -1))

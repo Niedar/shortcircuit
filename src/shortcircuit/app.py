@@ -1,10 +1,11 @@
 # app.py
-
+import json
 import sys
 import time
+from functools import partial
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from . import __appname__, __version__
+from . import __appname__, __version__, __date__ as last_update
 from .model.farmer import Farmer
 from .model.logger import Logger
 from .model.navigation import Navigation
@@ -21,37 +22,38 @@ class TripwireDialog(QtWidgets.QDialog, Ui_TripwireDialog):
   """
   Tripwire Configuration Window
   """
-  def __init__(self, trip_url, trip_user, trip_pass, evescout_enable, parent=None):
+  def __init__(self, trip_url, trip_user, trip_pass, proxy, evescout_enabled, parent=None):
     super(TripwireDialog, self).__init__(parent)
     self.setupUi(self)
     self.lineEdit_url.setText(trip_url)
     self.lineEdit_user.setText(trip_user)
     self.lineEdit_pass.setText(trip_pass)
-    self.checkBox_evescout.setChecked(evescout_enable)
-    self.label_evescout_logo.mouseDoubleClickEvent = TripwireDialog.logo_double_click
+    self.lineEdit_proxy.setText(proxy)
+    self.checkBox_evescout.setChecked(evescout_enabled)
+    self.label_evescout_logo.mouseReleaseEvent = TripwireDialog.logo_click
 
   @staticmethod
-  def logo_double_click(event):
+  def logo_click(event):
     event.accept()
-    QtGui.QDesktopServices.openUrl(url=QtCore.QUrl("https://www.eve-scout.com/"))
+    QtGui.QDesktopServices.openUrl(QtCore.QUrl("https://www.eve-scout.com/"))
 
 
 class AboutDialog(QtWidgets.QDialog, Ui_AboutDialog):
   """
   Tripwire Configuration Window
   """
-  def __init__(self, version, parent=None):
+  def __init__(self, parent=None):
     super(AboutDialog, self).__init__(parent)
     self.setupUi(self)
-    self.label_title.setText("Short Circuit {}".format(version))
+    self.label_title.setText('{} v{} ({})'.format(__appname__, __version__, last_update))
     # noinspection PyUnresolvedReferences
     self.pushButton_o7.clicked.connect(self.close)
-    self.label_icon.mouseDoubleClickEvent = AboutDialog.icon_double_click
+    self.label_icon.mouseReleaseEvent = AboutDialog.icon_click
 
   @staticmethod
-  def icon_double_click(event):
+  def icon_click(event):
     event.accept()
-    QtGui.QDesktopServices.openUrl(url=QtCore.QUrl("https://github.com/secondfry/shortcircuit"))
+    QtGui.QDesktopServices.openUrl(QtCore.QUrl("https://github.com/secondfry/shortcircuit"))
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
@@ -83,11 +85,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
       __appname__
     )
 
-    self.scene_banner = None
     self.tripwire_url = None
     self.tripwire_user = None
     self.tripwire_pass = None
-    self.evescout_enable = None
+    self.global_proxy = None
+    self.evescout_enabled = None
 
     # Table configuration
     self.tableWidget_path.setColumnCount(5)
@@ -106,7 +108,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     self.additional_gui_setup()
     self.label_status_bar = QtWidgets.QLabel("Not connected to EvE")
     self.statusBar().addWidget(self.label_status_bar, 1)
-    if self.evescout_enable:
+    if self.evescout_enabled:
       self.label_evescout_status.setText("Eve-Scout: enabled")
     else:
       self.label_evescout_status.setText("Eve-Scout: disabled")
@@ -158,14 +160,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
   # noinspection PyUnresolvedReferences
   def additional_gui_setup(self):
     # Additional GUI setup
-    self.graphicsView_banner.mouseDoubleClickEvent = MainWindow.banner_double_click
-    self.setWindowTitle(__appname__)
-    self.scene_banner = QtWidgets.QGraphicsScene()
-    self.graphicsView_banner.setScene(self.scene_banner)
-    self.scene_banner.addPixmap(QtGui.QPixmap(":images/banner.png"))
+    self.setWindowTitle('{} v{} ({})'.format(__appname__, __version__, last_update))
+    self.banner_image.mouseReleaseEvent = MainWindow.banner_click
+    self.banner_button.mouseReleaseEvent = MainWindow.banner_click
     self._path_message("", MainWindow.MSG_OK)
     self._avoid_message("", MainWindow.MSG_OK)
     self.lineEdit_source.setFocus()
+    self.lineEdit_short_format.mousePressEvent = partial(MainWindow.short_format_click, self)
 
     # Auto-completion
     system_list = self.nav.eve_db.system_name_list()
@@ -196,7 +197,37 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     self.lineEdit_set_dest.returnPressed.connect(self.btn_set_dest_clicked)
     self.tableWidget_path.itemSelectionChanged.connect(self.table_item_selection_changed)
 
+  def migrate_settings_tripwire(self):
+    Logger.info('Mirgating Tripwire dialog settings to their own category')
+    tripwire_url = self.settings.value('MainWindow/tripwire_url')
+    tripwire_user = self.settings.value('MainWindow/tripwire_user')
+    tripwire_pass = self.settings.value('MainWindow/tripwire_pass')
+    evescout_enabled = self.settings.value('MainWindow/evescout_enable', 'false') == 'true'
+    self.settings.beginGroup('Tripwire')
+    self.settings.setValue('url', tripwire_url)
+    self.settings.setValue('user', tripwire_user)
+    self.settings.setValue('pass', tripwire_pass)
+    self.settings.setValue('evescout_enabled', evescout_enabled)
+    self.settings.endGroup()
+    self.settings.remove('MainWindow/tripwire_url')
+    self.settings.remove('MainWindow/tripwire_user')
+    self.settings.remove('MainWindow/tripwire_pass')
+    self.settings.remove('MainWindow/evescout_enable')
+  
+  def read_settings_tripwire(self):
+    self.global_proxy = self.settings.value('proxy')
+    self.settings.beginGroup('Tripwire')
+    self.tripwire_url = self.settings.value('url', 'https://tripwire.eve-apps.com')
+    self.tripwire_user = self.settings.value('user')
+    self.tripwire_pass = self.settings.value('pass')
+    self.evescout_enabled = self.settings.value('evescout_enabled', 'false') == 'true'
+    self.settings.endGroup()
+
   def read_settings(self):
+    if self.settings.value('MainWindow/tripwire_url'):
+      self.migrate_settings_tripwire()
+    self.read_settings_tripwire()
+
     self.settings.beginGroup("MainWindow")
 
     # Window state
@@ -208,14 +239,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
       self.restoreState(win_state)
     for col_idx, column_width in enumerate(self.settings.value("table_widths", "110,75,75,180").split(',')):
       self.tableWidget_path.setColumnWidth(col_idx, int(column_width))
-
-    # Tripwire info
-    self.tripwire_url = self.settings.value("tripwire_url", "https://tripwire.eve-apps.com")
-    self.tripwire_user = self.settings.value("tripwire_user", "username")
-    self.tripwire_pass = self.settings.value("tripwire_pass", "password")
-
-    # Eve-Scout
-    self.evescout_enable = self.settings.value("evescout_enable", "false") == "true"
 
     # Avoidance list
     self.checkBox_avoid_enabled.setChecked(
@@ -253,7 +276,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     self.settings.endGroup()
 
+  def write_settings_tripwire(self):
+    self.settings.setValue('proxy', self.global_proxy)
+    self.settings.beginGroup('Tripwire')
+    self.settings.setValue('url', self.tripwire_url)
+    self.settings.setValue('user', self.tripwire_user)
+    self.settings.setValue('pass', self.tripwire_pass)
+    self.settings.setValue('evescout_enabled', self.evescout_enabled)
+    self.settings.endGroup()
+
   def write_settings(self):
+    self.write_settings_tripwire()
+
     self.settings.beginGroup("MainWindow")
 
     # Window state
@@ -265,14 +299,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
       str(self.tableWidget_path.columnWidth(2)),
       str(self.tableWidget_path.columnWidth(3)),
     ]))
-
-    # Tripwire info
-    self.settings.setValue("tripwire_url", self.tripwire_url)
-    self.settings.setValue("tripwire_user", self.tripwire_user)
-    self.settings.setValue("tripwire_pass", self.tripwire_pass)
-
-    # Eve-Scout
-    self.settings.setValue("evescout_enable", self.evescout_enable)
 
     # Avoidance list
     self.settings.setValue(
@@ -500,9 +526,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     self.lineEdit_short_format.setText(short_format)
 
   @staticmethod
-  def banner_double_click(event):
+  def banner_click(event):
     event.accept()
-    AboutDialog(__version__).exec_()
+    AboutDialog().exec_()
+
+  def short_format_click(self, event):
+    event.accept()
+    if not self.lineEdit_short_format.text():
+      return
+    self.lineEdit_short_format.selectAll()
+    self.lineEdit_short_format.copy()
+    self._statusbar_message("Copied travel info to clipboard!", MainWindow.MSG_INFO)
 
   @QtCore.Slot(str)
   def login_handler(self, char_name):
@@ -545,7 +579,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     while self.worker_thread.isRunning():
       time.sleep(0.01)
 
-    if self.evescout_enable:
+    if self.evescout_enabled:
       if evescout_connections >= 0:
         self.label_evescout_status.setText("Eve-Scout: {} connections".format(evescout_connections))
       else:
@@ -615,25 +649,31 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
       self.tripwire_url,
       self.tripwire_user,
       self.tripwire_pass,
-      self.evescout_enable
+      self.global_proxy,
+      self.evescout_enabled
     )
-    if tripwire_dialog.exec_():
-      self.tripwire_url = tripwire_dialog.lineEdit_url.text()
-      self.tripwire_user = tripwire_dialog.lineEdit_user.text()
-      self.tripwire_pass = tripwire_dialog.lineEdit_pass.text()
-      self.nav.tripwire_set_login()
-      self.evescout_enable = tripwire_dialog.checkBox_evescout.isChecked()
-      if self.evescout_enable:
-        self.label_evescout_status.setText("Eve-Scout: enabled")
-      else:
-        self.label_evescout_status.setText("Eve-Scout: disabled")
+
+    if not tripwire_dialog.exec_():
+      return
+
+    self.tripwire_url = tripwire_dialog.lineEdit_url.text()
+    self.tripwire_user = tripwire_dialog.lineEdit_user.text()
+    self.tripwire_pass = tripwire_dialog.lineEdit_pass.text()
+    self.global_proxy = tripwire_dialog.lineEdit_proxy.text()
+    self.nav.tripwire_set_login()
+    self.evescout_enabled = tripwire_dialog.checkBox_evescout.isChecked()
+    if self.evescout_enabled:
+      self.label_evescout_status.setText("Eve-Scout: enabled")
+    else:
+      self.label_evescout_status.setText("Eve-Scout: disabled")
+    self.write_settings_tripwire()
 
   @QtCore.Slot()
   def btn_trip_get_clicked(self):
     if not self.worker_thread.isRunning():
       self.pushButton_trip_get.setEnabled(False)
       self.pushButton_find_path.setEnabled(False)
-      self.nav_processor.evescout_enable = self.evescout_enable
+      self.nav_processor.evescout_enable = self.evescout_enabled
       self.worker_thread.start()
     else:
       self._trip_message("Error! Process already running", MainWindow.MSG_ERROR)
@@ -702,23 +742,41 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
       self.lineEdit_set_dest.setText(selection[0].text())
 
   @QtCore.Slot(str)
-  def version_check_done(self, version):
+  def version_check_done(self, latest):
     self.version_thread.quit()
 
-    if version and __version__ != version:
-      version_box = QtWidgets.QMessageBox(self)
-      version_box.setWindowTitle("New version available!")
-      version_box.setText(
-        "You have version '{}', but there's a new version available: '{}'.".format(__version__, version)
-      )
-      version_box.addButton("Download now", QtWidgets.QMessageBox.AcceptRole)
-      version_box.addButton("Remind me later", QtWidgets.QMessageBox.RejectRole)
-      ret = version_box.exec_()
+    if not latest:
+      return
 
-      if ret == QtWidgets.QMessageBox.AcceptRole:
-        QtGui.QDesktopServices.openUrl(
-          url=QtCore.QUrl("https://github.com/secondfry/shortcircuit/releases/tag/{}".format(version))
-        )
+    latest = json.loads(latest)
+    version = latest['tag_name'].split('v')[-1]
+    changelog = latest['body']
+    if len(latest['body']) > 1200:
+      changelog = latest['body'][0:1200].split(' ')
+      del changelog[-1]
+      changelog = ' '.join(changelog)
+
+    version_box = QtWidgets.QMessageBox(self)
+    version_box.setWindowTitle('New version available!')
+    version_box.setText(
+      'Your version: v{} ({}).\nGitHub latest release: v{} ({}).\n\n{}'.format(
+        __version__,
+        last_update,
+        version,
+        latest['published_at'],
+        changelog
+      )
+    )
+    version_box.addButton('Download now', QtWidgets.QMessageBox.AcceptRole)
+    version_box.addButton('Remind me later', QtWidgets.QMessageBox.RejectRole)
+    ret = version_box.exec_()
+
+    if ret != QtWidgets.QMessageBox.AcceptRole:
+      return
+
+    QtGui.QDesktopServices.openUrl(
+      QtCore.QUrl('https://github.com/secondfry/shortcircuit/releases/tag/{}'.format(latest['tag_name']))
+    )
 
   # event: QCloseEvent
   def closeEvent(self, event):

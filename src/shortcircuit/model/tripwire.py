@@ -7,13 +7,14 @@ from datetime import datetime
 from .evedb import EveDb
 from .logger import Logger
 from .solarmap import SolarMap
+from .utility.configuration import Configuration
+from shortcircuit import USER_AGENT
 
 
 class Tripwire:
   """
   Tripwire handler
   """
-  USER_AGENT = "Short Circuit v0.3.2"
 
   def __init__(self, username: str, password: str, url: str):
     self.eve_db = EveDb()
@@ -30,20 +31,28 @@ class Tripwire:
     session_requests = requests.session()
 
     payload = {
-      "username": self.username,
-      "password": self.password,
-      "mode": "login",
+      'username': self.username,
+      'password': self.password,
+      'mode': 'login',
     }
     headers = {
-      "Referer": login_url,
-      "User-Agent": Tripwire.USER_AGENT,
+      'Referer': login_url,
+      'User-Agent': USER_AGENT,
     }
+    proxies = {}
+    proxy = Configuration.settings.value('proxy')
+    if proxy:
+      proxies = {
+        'http': proxy,
+        'https': proxy
+      }
 
     try:
       result = session_requests.post(
         login_url,
         data=payload,
-        headers=headers
+        headers=headers,
+        proxies=proxies
       )
     except requests.exceptions.RequestException as e:
       Logger.error('Exception raised while trying to login')
@@ -66,19 +75,27 @@ class Tripwire:
 
     refresh_url = '{}/refresh.php'.format(self.url)
     payload = {
-      "mode": "init",
-      "systemID": system_id
+      'mode': 'init',
+      'systemID': system_id
     }
     headers = {
-      "Referer": refresh_url,
-      "User-Agent": Tripwire.USER_AGENT,
+      'Referer': refresh_url,
+      'User-Agent': USER_AGENT,
     }
+    proxies = {}
+    proxy = Configuration.settings.value('proxy')
+    if proxy:
+      proxies = {
+        'http': proxy,
+        'https': proxy
+      }
 
     try:
       result = self.session_requests.get(
         refresh_url,
         params=payload,
-        headers=headers
+        headers=headers,
+        proxies=proxies
       )
     except requests.exceptions.RequestException as e:
       Logger.error('Exception raised while trying to refresh')
